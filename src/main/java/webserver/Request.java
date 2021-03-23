@@ -1,5 +1,7 @@
 package webserver;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
 
 import java.io.BufferedReader;
@@ -7,6 +9,8 @@ import java.io.IOException;
 import java.util.Map;
 
 public class Request {
+    private static final Logger logger = LoggerFactory.getLogger(Request.class);
+
     private final RequestMethod method;
     private final String url;
     private final String protocol;
@@ -14,6 +18,7 @@ public class Request {
     private RequestBody requestBody;
 
     public Request(String requestLine, BufferedReader br) throws IOException {
+        logger.debug("~~~~~~~~ request: {} ~~~~~~~~", requestLine);
         String[] splitted = requestLine.split(" ");
         if (splitted.length != 3) {
             throw new RuntimeException("이상한 요청이 들어왔습니다.");
