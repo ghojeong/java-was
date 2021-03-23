@@ -26,6 +26,10 @@ public class RequestHeader {
         }
     }
 
+    public String get(String key) {
+        return headers.get(key);
+    }
+
     public int getContentLength() {
         return Integer.parseInt(
                 headers.getOrDefault("Content-Length", "0")

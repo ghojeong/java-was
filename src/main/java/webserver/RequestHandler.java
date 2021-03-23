@@ -52,8 +52,11 @@ public class RequestHandler extends Thread {
     private void handleGet(Request request, DataOutputStream dos) throws IOException {
         String url = request.getUrl();
         byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+        String contentType = request.getRequestHeader()
+                .get("Accept")
+                .split(",")[0];
         ResponseHeader responseHeader = new ResponseHeader("200 OK")
-                .set("Content-Type", "text/html;charset=utf-8")
+                .set("Content-Type", contentType)
                 .set("Content-Length", String.valueOf(body.length));
         ResponseBody responseBody = new ResponseBody(body);
         Response response = new Response(responseHeader, responseBody);
