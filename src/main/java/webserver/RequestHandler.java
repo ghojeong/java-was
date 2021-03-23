@@ -33,7 +33,6 @@ public class RequestHandler extends Thread {
             Request request = new Request(line, br);
             RequestMethod method = request.getMethod();
             String url = request.getUrl();
-            String viewPath = url;
 
             if (url.startsWith("/user/create") && method.equals(POST)) {
                 RequestBody requestBody = request.getRequestBody();
@@ -46,34 +45,21 @@ public class RequestHandler extends Thread {
                         requestBody.get("email")
                 );
                 log.debug("User : {}", user);
-                viewPath = "/index.html";
+
+                ResponseHeader responseHeader = new ResponseHeader("302 Found")
+                        .set("Location", "/index.html");
+                Response response = new Response(responseHeader);
+                response.writeTo(new DataOutputStream(out));
+                return;
             }
 
-            // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = Files.readAllBytes(new File("./webapp" + viewPath).toPath());
-            response200Header(dos, body.length);
-            responseBody(dos, body);
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-    }
-
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
-        try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-    }
-
-    private void responseBody(DataOutputStream dos, byte[] body) {
-        try {
-            dos.write(body, 0, body.length);
-            dos.flush();
+            byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+            ResponseHeader responseHeader = new ResponseHeader("200 OK")
+                    .set("Content-Type", "text/html;charset=utf-8")
+                    .set("Content-Length", String.valueOf(body.length));
+            ResponseBody responseBody = new ResponseBody(body);
+            Response response = new Response(responseHeader, responseBody);
+            response.writeTo(new DataOutputStream(out));
         } catch (IOException e) {
             log.error(e.getMessage());
         }
