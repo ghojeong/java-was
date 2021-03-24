@@ -1,10 +1,10 @@
 package webserver;
 
-import java.net.ServerSocket;
-import java.net.Socket;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class WebServer {
     private static final Logger log = LoggerFactory.getLogger(WebServer.class);
@@ -26,8 +26,8 @@ public class WebServer {
             // 클라이언트가 연결될때까지 대기한다.
             Socket connection;
             while ((connection = listenSocket.accept()) != null) {
-                RequestHandler requestHandler = new RequestHandler(connection);
-                requestHandler.start();
+                Controller controller = new Controller(connection);
+                controller.start();
             }
         }
     }
