@@ -1,15 +1,16 @@
 package webserver;
 
+import db.DataBase;
+import model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import util.IOUtils;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
-
-import model.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -40,26 +41,52 @@ public class RequestHandler extends Thread {
 
             DataOutputStream dos = new DataOutputStream(out);
 
-            if(url.startsWith("/user/create")) {
-                if(method == RequestMethod.POST) {
-                    String body = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
-                    log.debug("body : {}", body);
-                    final Map<String, String> stringQuery = parseQueryString(body);
-                    User user = new User(stringQuery.get("userId"), stringQuery.get("password"), stringQuery.get("name"), stringQuery.get("email"));
-                    log.debug("user : {}", user);
-                    response302Header(dos, "/index.html");
+            if (url.startsWith("/user/create") && method == RequestMethod.POST) {
+                String body = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
+                log.debug("body : {}", body);
+                final Map<String, String> stringQuery = parseQueryString(body);
+                User user = new User(stringQuery.get("userId"), stringQuery.get("password"), stringQuery.get("name"), stringQuery.get("email"));
+                log.debug("user : {}", user);
+                DataBase.addUser(user);
+                response302Header(dos, "/index.html");
+                return;
+            }
+
+            if (url.startsWith("/user/login") && method == RequestMethod.POST) {
+                String body = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
+                log.debug("body : {}", body);
+                final Map<String, String> stringQuery = parseQueryString(body);
+                String userId = stringQuery.get("userId");
+                String password = stringQuery.get("password");
+                User user = DataBase.findUserById(userId);
+                if (user == null || !user.isMatchPassword(password)) {
+                    response302Header(dos, "/user/login_failed.html");
                     return;
                 }
+                response302HeaderWithCookies(dos, "/index.html", "loggedIn=true");
+                return;
             }
+
 
             if (url.equals("/")) {
                 response302Header(dos, "/index.html");
                 return;
             }
 
-            byte[] body = Files.readAllBytes(new File("./webapp/"+url).toPath());
+            byte[] body = Files.readAllBytes(new File("./webapp/" + url).toPath());
             response200Header(dos, body.length);
             responseBody(dos, body);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response302HeaderWithCookies(DataOutputStream dos, String location, String cookie) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 \r\n");
+            dos.writeBytes(String.format("Location: %s \r\n", location));
+            dos.writeBytes(String.format("Set-Cookie: %s \r\n", cookie));
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -108,7 +135,7 @@ public class RequestHandler extends Thread {
 
     private Map<String, String> parseUrl(String url) {
         int i = url.indexOf('?');
-        if(i == -1) {
+        if (i == -1) {
             return new HashMap<>();
         }
         return parseQueryString(url.substring(i + 1, url.length()));
@@ -117,7 +144,7 @@ public class RequestHandler extends Thread {
     private Map<String, String> parseQueryString(String queryString) {
         Map<String, String> queryStrings = new HashMap<>();
         String[] split = queryString.split("&");
-        for(String query : split) {
+        for (String query : split) {
             String[] ss = query.split("=");
             queryStrings.put(ss[0], ss[1]);
         }
