@@ -38,8 +38,7 @@ public class RequestHandler extends Thread {
             String url = firstLine[1];
             log.info("url : {}", url);
 
-
-
+            DataOutputStream dos = new DataOutputStream(out);
 
             if(url.startsWith("/user/create")) {
                 if(method == RequestMethod.POST) {
@@ -48,15 +47,29 @@ public class RequestHandler extends Thread {
                     final Map<String, String> stringQuery = parseQueryString(body);
                     User user = new User(stringQuery.get("userId"), stringQuery.get("password"), stringQuery.get("name"), stringQuery.get("email"));
                     log.debug("user : {}", user);
+                    response302Header(dos, "/index.html");
+                    return;
                 }
-
             }
 
-            DataOutputStream dos = new DataOutputStream(out);
+            if (url.equals("/")) {
+                response302Header(dos, "/index.html");
+                return;
+            }
 
             byte[] body = Files.readAllBytes(new File("./webapp/"+url).toPath());
             response200Header(dos, body.length);
             responseBody(dos, body);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response302Header(DataOutputStream dos, String location) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 \r\n");
+            dos.writeBytes(String.format("Location: %s \r\n", location));
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
