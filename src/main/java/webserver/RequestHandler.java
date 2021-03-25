@@ -33,7 +33,7 @@ public class RequestHandler extends Thread {
             String line = br.readLine();
             log.debug("line : {}", line);
             final Map<String, String> headers = parseHeaders(br);
-            log.debug("headers : {}, {}", headers.get("Content-Length"), headers.get("Content-Type"));
+            log.debug("headers : {}", headers);
             String[] firstLine = line.split(" ");
             RequestMethod method = RequestMethod.of(firstLine[0]);
             String url = firstLine[1];
@@ -69,6 +69,21 @@ public class RequestHandler extends Thread {
 
 
             if (url.equals("/")) {
+                response302Header(dos, "/index.html");
+                return;
+            }
+
+            if (url.startsWith("/user/list")) {
+                String cookie = headers.get("Cookie");
+                if (cookie != null) {
+                    String[] splitCookie = cookie.split("=");
+                    if (splitCookie[0].equals("loggedIn") && splitCookie[1].equals("true")) {
+                        byte[] body = Files.readAllBytes(new File("./webapp/user/list.html").toPath());
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
+                        return;
+                    }
+                }
                 response302Header(dos, "/index.html");
                 return;
             }
